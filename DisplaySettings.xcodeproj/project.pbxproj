@@ -14,6 +14,7 @@
 		003AEC247B6041CEACD91FF8 /* DisplayModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B80F2F03B3F4F07B42DD5BD /* DisplayModel.swift */; };
 		CCAD8A4BE06349C3B3D42B1B /* DDCHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BA1F7364294DFAB0F38A70 /* DDCHelper.swift */; };
 		DD44556677889900112233DD /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC334455667788990011AACC /* main.swift */; };
+		EE55667788990011223344EE /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF66778899001122334455FF /* UpdateChecker.swift */; };
 		C887B33B5ADE4018BB45C06B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58A83FA5BB8A46539034B7F9 /* Assets.xcassets */; };
 		3DAC35F369254243B194639A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 659F3BF7B9C747D7BBF2372A /* IOKit.framework */; };
 /* End PBXBuildFile section */
@@ -26,6 +27,7 @@
 		4B80F2F03B3F4F07B42DD5BD /* DisplayModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayModel.swift; sourceTree = "<group>"; };
 		A4BA1F7364294DFAB0F38A70 /* DDCHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCHelper.swift; sourceTree = "<group>"; };
 		CC334455667788990011AACC /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		FF66778899001122334455FF /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		4DC9CB4213C1487D96324D3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58A83FA5BB8A46539034B7F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CEEEA5AA169540679C88AB6D /* DisplaySettings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplaySettings.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +73,7 @@
 				4B80F2F03B3F4F07B42DD5BD /* DisplayModel.swift */,
 				A4BA1F7364294DFAB0F38A70 /* DDCHelper.swift */,
 				CC334455667788990011AACC /* main.swift */,
+				FF66778899001122334455FF /* UpdateChecker.swift */,
 				58A83FA5BB8A46539034B7F9 /* Assets.xcassets */,
 				4DC9CB4213C1487D96324D3E /* Info.plist */,
 			);
@@ -154,6 +157,7 @@
 				003AEC247B6041CEACD91FF8 /* DisplayModel.swift in Sources */,
 				CCAD8A4BE06349C3B3D42B1B /* DDCHelper.swift in Sources */,
 				DD44556677889900112233DD /* main.swift in Sources */,
+				EE55667788990011223344EE /* UpdateChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

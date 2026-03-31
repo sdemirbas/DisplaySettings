@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var displayManager = DisplayManager()
+    @StateObject private var updateChecker  = UpdateChecker()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,6 +50,25 @@ struct ContentView: View {
 
             // Footer
             HStack {
+                Text("v\(updateChecker.currentVersion)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                if updateChecker.updateAvailable, let latest = updateChecker.latestVersion {
+                    Button {
+                        NSWorkspace.shared.open(updateChecker.releasesURL)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.system(size: 10))
+                            Text("v\(latest) available")
+                                .font(.system(size: 11))
+                        }
+                        .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Spacer()
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
