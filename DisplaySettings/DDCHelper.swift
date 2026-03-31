@@ -34,6 +34,12 @@ final class DDCHelper {
     private static var avRead:          AVReadFunc?          = nil
     private static var avCopyEDID:      AVCopyEDIDFunc?      = nil
 
+    // MARK: - Logging
+
+    private static func ddcLog(_ message: String) {
+        Task { @MainActor in DebugLogger.shared.log(message) }
+    }
+
     // MARK: - Framework loading
 
     private static func loadAVService() {
@@ -51,7 +57,6 @@ final class DDCHelper {
         var loadedPath = ""
         for path in candidates {
             if let h = dlopen(path, RTLD_GLOBAL | RTLD_NOW) {
-                // Verify the key symbol exists in this handle
                 if dlsym(h, "IOAVServiceWriteI2C") != nil {
                     handle = h
                     loadedPath = path
@@ -62,17 +67,17 @@ final class DDCHelper {
         }
 
         guard let h = handle else {
-            print("[DDC] IOAVService symbols not found in any framework")
+            ddcLog("[DDC] IOAVService symbols not found in any framework")
             return
         }
-        print("[DDC] Loaded from: \(loadedPath)")
+        ddcLog("[DDC] Loaded from: \(loadedPath)")
 
         if let s = dlsym(h, "IOAVServiceCreate")            { avCreate        = unsafeBitCast(s, to: AVCreateFunc.self) }
         if let s = dlsym(h, "IOAVServiceCreateWithService") { avCreateWithSvc = unsafeBitCast(s, to: AVCreateWithSvcFunc.self) }
         if let s = dlsym(h, "IOAVServiceWriteI2C")          { avWrite         = unsafeBitCast(s, to: AVWriteFunc.self) }
         if let s = dlsym(h, "IOAVServiceReadI2C")           { avRead          = unsafeBitCast(s, to: AVReadFunc.self) }
         if let s = dlsym(h, "IOAVServiceCopyEDID")          { avCopyEDID      = unsafeBitCast(s, to: AVCopyEDIDFunc.self) }
-        print("[DDC] write=\(avWrite != nil) read=\(avRead != nil) copyEDID=\(avCopyEDID != nil)")
+        ddcLog("[DDC] write=\(avWrite != nil) read=\(avRead != nil) copyEDID=\(avCopyEDID != nil)")
     }
 
     // MARK: - Public API
@@ -171,6 +176,42 @@ final class DDCHelper {
         return writeDDCViaIOKit(displayID: displayID, vcp: 0x8D, value: value)
     }
 
+    // Color Temperature (VCP 0xB2) — value in 100K steps, e.g. 50 = 5000K
+    static func readColorTemp(displayID: CGDirectDisplayID) -> (value: Int, max: Int)? {
+        loadAVService()
+        if let svc = findAVService(for: displayID) {
+            if let r = readDDCViaAVService(service: svc, vcp: 0xB2) { return r }
+        }
+        return readDDCViaIOKit(displayID: displayID, vcp: 0xB2)
+    }
+
+    @discardableResult
+    static func writeColorTemp(displayID: CGDirectDisplayID, value: Int) -> Bool {
+        loadAVService()
+        if let svc = findAVService(for: displayID) {
+            if writeDDCViaAVService(service: svc, vcp: 0xB2, value: value) { return true }
+        }
+        return writeDDCViaIOKit(displayID: displayID, vcp: 0xB2, value: value)
+    }
+
+    // RGB Gain: R=0x16, G=0x18, B=0x1A (0–255, monitor-dependent)
+    static func readGain(displayID: CGDirectDisplayID, channel: UInt8) -> (value: Int, max: Int)? {
+        loadAVService()
+        if let svc = findAVService(for: displayID) {
+            if let r = readDDCViaAVService(service: svc, vcp: channel) { return r }
+        }
+        return readDDCViaIOKit(displayID: displayID, vcp: channel)
+    }
+
+    @discardableResult
+    static func writeGain(displayID: CGDirectDisplayID, channel: UInt8, value: Int) -> Bool {
+        loadAVService()
+        if let svc = findAVService(for: displayID) {
+            if writeDDCViaAVService(service: svc, vcp: channel, value: value) { return true }
+        }
+        return writeDDCViaIOKit(displayID: displayID, vcp: channel, value: value)
+    }
+
     // MARK: - IOAVService discovery
     //
     // Strategy:
@@ -193,7 +234,7 @@ final class DDCHelper {
             var entry = IOIteratorNext(iter)
             while entry != 0 {
                 if ioStringProperty(entry, key: "Location") == "External" {
-                    externalEntries.append(entry)   // caller releases via defer
+                    externalEntries.append(entry)
                 } else {
                     IOObjectRelease(entry)
                 }
@@ -201,13 +242,13 @@ final class DDCHelper {
             }
             IOObjectRelease(iter)
 
-            if !externalEntries.isEmpty { break }   // found via this class, stop
+            if !externalEntries.isEmpty { break }
         }
 
         defer { externalEntries.forEach { IOObjectRelease($0) } }
 
         guard !externalEntries.isEmpty else {
-            print("[DDC] No external DCPAVServiceProxy found — is the monitor connected?")
+            ddcLog("[DDC] No external DCPAVServiceProxy found — is the monitor connected?")
             return nil
         }
 
@@ -220,16 +261,15 @@ final class DDCHelper {
         // ── Fast path: only one external display ──────────────────────────────
         if externalCount <= 1 {
             let svc = makeAVService(from: externalEntries[0])
-            print("[DDC] Single external display — fast path, service=\(String(describing: svc))")
+            ddcLog("[DDC] Single external display — fast path, service=\(String(describing: svc))")
             return svc
         }
 
         // ── Multi-display path: match by EDID ────────────────────────────────
         let targetVendor  = CGDisplayVendorNumber(displayID)
         let targetProduct = CGDisplayModelNumber(displayID)
-        print("[DDC] Multi-display matching vendor=\(targetVendor) product=\(targetProduct)")
+        ddcLog("[DDC] Multi-display matching vendor=\(targetVendor) product=\(targetProduct)")
 
-        // Sort entries by registry ID for deterministic ordering
         let sorted = externalEntries.sorted {
             var a: UInt64 = 0; var b: UInt64 = 0
             IORegistryEntryGetRegistryEntryID($0, &a)
@@ -241,8 +281,8 @@ final class DDCHelper {
             guard let svc = makeAVService(from: entry) else { continue }
             if let edid = readEDID(service: svc) {
                 let edidVendor  = (UInt32(edid[8]) << 8) | UInt32(edid[9])
-                let edidProduct = UInt32(edid[10]) | (UInt32(edid[11]) << 8)  // little-endian
-                print("[DDC] EDID: vendor=\(edidVendor) product=\(edidProduct)")
+                let edidProduct = UInt32(edid[10]) | (UInt32(edid[11]) << 8)
+                ddcLog("[DDC] EDID: vendor=\(edidVendor) product=\(edidProduct)")
                 if edidVendor == targetVendor && edidProduct == targetProduct {
                     return svc
                 }
@@ -250,7 +290,7 @@ final class DDCHelper {
         }
 
         // Last resort: index-based fallback
-        var extDisplays = (0..<Int(count)).map { allIDs[$0] }.filter { CGDisplayIsBuiltin($0) == 0 }.sorted()
+        let extDisplays = (0..<Int(count)).map { allIDs[$0] }.filter { CGDisplayIsBuiltin($0) == 0 }.sorted()
         if let idx = extDisplays.firstIndex(of: displayID), idx < sorted.count {
             return makeAVService(from: sorted[idx])
         }
@@ -267,12 +307,10 @@ final class DDCHelper {
     // MARK: - EDID reading (for multi-monitor matching)
 
     private static func readEDID(service: UnsafeMutableRawPointer) -> [UInt8]? {
-        // Prefer IOAVServiceCopyEDID (available in macOS 26 / IOKit.framework)
         if let copyFn = avCopyEDID, let cfData = copyFn(service)?.takeRetainedValue() {
             let bytes = Array(cfData as Data)
             if bytes.count >= 8 && bytes[0] == 0x00 && bytes[1] == 0xFF { return bytes }
         }
-        // Fallback: raw I2C read from EDID address 0x50
         guard let readFn = avRead else { return nil }
         var edid = [UInt8](repeating: 0, count: 128)
         let ret = edid.withUnsafeMutableBytes { ptr -> Int32 in
@@ -288,7 +326,6 @@ final class DDCHelper {
         guard let writeFn = avWrite else { return false }
         let hi = UInt8((value >> 8) & 0xFF)
         let lo = UInt8(value & 0xFF)
-        // "Set VCP Feature" payload (excluding leading source address 0x51 which IOAVService adds)
         var p: [UInt8] = [0x84, 0x03, vcp, hi, lo, 0x00]
         p[5] = ddcChecksum(dest: 0x6E, src: 0x51, bytes: Array(p.prefix(5)))
         let pLen = UInt32(p.count)
@@ -300,7 +337,6 @@ final class DDCHelper {
     private static func readDDCViaAVService(service: UnsafeMutableRawPointer, vcp: UInt8) -> (value: Int, max: Int)? {
         guard let writeFn = avWrite, let readFn = avRead else { return nil }
 
-        // "Get VCP Feature" request
         let cs = ddcChecksum(dest: 0x6E, src: 0x51, bytes: [0x82, 0x01, vcp])
         var req: [UInt8] = [0x82, 0x01, vcp, cs]
         let reqLen = UInt32(req.count)
@@ -308,11 +344,11 @@ final class DDCHelper {
             writeFn(service, 0x37, 0x51, ptr.baseAddress!, reqLen)
         }
         guard wRet == 0 else {
-            print("[DDC] AVService write failed: \(wRet)")
+            ddcLog("[DDC] AVService write failed: \(wRet) vcp=0x\(String(vcp, radix: 16))")
             return nil
         }
 
-        Thread.sleep(forTimeInterval: 0.05)  // DDC/CI requires ≥40 ms before reply
+        Thread.sleep(forTimeInterval: 0.05)
 
         var reply = [UInt8](repeating: 0, count: 12)
         let replyLen = UInt32(reply.count)
@@ -320,7 +356,7 @@ final class DDCHelper {
             readFn(service, 0x37, 0x51, ptr.baseAddress!, replyLen)
         }
         guard rRet == 0 else {
-            print("[DDC] AVService read failed: \(rRet)")
+            ddcLog("[DDC] AVService read failed: \(rRet) vcp=0x\(String(vcp, radix: 16))")
             return nil
         }
         return parseDDCReply(reply)
@@ -418,8 +454,6 @@ final class DDCHelper {
 
     // MARK: - Display name (for DisplayManager)
 
-    /// Find an IOMobileFramebufferAP / AppleCLCD2 service for the given display,
-    /// which contains DisplayAttributes with the product name.
     static func serviceForDisplay(_ displayID: CGDirectDisplayID) -> io_service_t {
         let vendor  = CGDisplayVendorNumber(displayID)
         let product = CGDisplayModelNumber(displayID)
@@ -434,7 +468,7 @@ final class DDCHelper {
             var entry = IOIteratorNext(iter)
             while entry != 0 {
                 if matchesDisplayAttributes(entry, vendor: vendor, product: product, serial: serial) {
-                    return entry   // caller must release
+                    return entry
                 }
                 IOObjectRelease(entry)
                 entry = IOIteratorNext(iter)
@@ -503,10 +537,8 @@ final class DDCHelper {
         return cs
     }
 
-    /// Parse a DDC/CI "Get VCP Feature Reply" (opcode 0x02) from a raw byte buffer.
     private static func parseDDCReply(_ bytes: [UInt8]) -> (value: Int, max: Int)? {
         guard bytes.count >= 8 else { return nil }
-        // Find opcode 0x02 (may have leading framing bytes)
         var off = 0
         for i in 0...(bytes.count - 8) { if bytes[i] == 0x02 { off = i; break } }
         guard off + 7 < bytes.count, bytes[off + 1] == 0x00 else { return nil }

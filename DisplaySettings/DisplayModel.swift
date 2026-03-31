@@ -3,7 +3,7 @@ import CoreGraphics
 
 struct DisplayModel: Identifiable, Equatable {
     let id: CGDirectDisplayID
-    let name: String
+    var name: String
     var brightness: Double   // 0–100
     var contrast: Double     // 0–100
     var maxBrightness: Double
@@ -11,6 +11,11 @@ struct DisplayModel: Identifiable, Equatable {
     var volume: Double        // 0–100, -1 if not supported
     var maxVolume: Double
     var inputSource: Int      // DDC VCP 0x60 value, -1 if unknown
+    var colorTemp: Double     // 0–100 mapped from VCP 0xB2, -1 if not supported
+    var gainR: Double         // 0–100 from VCP 0x16, -1 if not supported
+    var gainG: Double         // 0–100 from VCP 0x18, -1 if not supported
+    var gainB: Double         // 0–100 from VCP 0x1A, -1 if not supported
+    var resolution: String    // e.g. "2560×1440"
     var ddcSupported: Bool
     var isLoading: Bool
 
@@ -24,6 +29,11 @@ struct DisplayModel: Identifiable, Equatable {
         volume: Double = -1,
         maxVolume: Double = 100,
         inputSource: Int = -1,
+        colorTemp: Double = -1,
+        gainR: Double = -1,
+        gainG: Double = -1,
+        gainB: Double = -1,
+        resolution: String = "",
         ddcSupported: Bool = true,
         isLoading: Bool = false
     ) {
@@ -36,6 +46,11 @@ struct DisplayModel: Identifiable, Equatable {
         self.volume = volume
         self.maxVolume = maxVolume
         self.inputSource = inputSource
+        self.colorTemp = colorTemp
+        self.gainR = gainR
+        self.gainG = gainG
+        self.gainB = gainB
+        self.resolution = resolution
         self.ddcSupported = ddcSupported
         self.isLoading = isLoading
     }

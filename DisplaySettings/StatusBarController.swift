@@ -30,9 +30,10 @@ final class StatusBarController: NSObject {
 
     private func configureStatusItem() {
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Display Settings")
+            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "BarDis")
             button.image?.isTemplate = true
-            button.action = #selector(togglePopover)
+            button.action = #selector(handleButtonClick(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
         }
     }
@@ -63,7 +64,6 @@ final class StatusBarController: NSObject {
     // MARK: - Menu Bar Brightness Indicator
 
     private func observeDisplays() {
-        // Observe display changes AND the menu bar setting together
         let displaysPublisher = displayManager.$displays.eraseToAnyPublisher()
         let settingPublisher  = SettingsManager.shared.$showBrightnessInMenuBar.eraseToAnyPublisher()
 
@@ -93,9 +93,74 @@ final class StatusBarController: NSObject {
         statusItem.length = NSStatusItem.variableLength
     }
 
-    // MARK: - Actions
+    // MARK: - Button click handler
 
-    @objc private func togglePopover() {
+    @objc private func handleButtonClick(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else { return }
+        if event.type == .rightMouseUp {
+            showContextMenu(sender)
+        } else {
+            togglePopover()
+        }
+    }
+
+    // MARK: - Context menu (right-click)
+
+    private func showContextMenu(_ button: NSStatusBarButton) {
+        if popover.isShown { closePopover() }
+
+        let menu = NSMenu()
+
+        let presets = SettingsManager.shared.presets
+        if !presets.isEmpty {
+            let header = NSMenuItem(title: "Presets", action: nil, keyEquivalent: "")
+            header.isEnabled = false
+            menu.addItem(header)
+            for preset in presets {
+                let item = NSMenuItem(
+                    title: "\(preset.name)  \(Int(preset.brightness.rounded()))%",
+                    action: #selector(applyPresetFromMenu(_:)),
+                    keyEquivalent: ""
+                )
+                item.representedObject = preset
+                item.target = self
+                menu.addItem(item)
+            }
+            menu.addItem(.separator())
+        }
+
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit BarDis",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        menu.addItem(quitItem)
+
+        // Temporarily attach menu for this click
+        statusItem.menu = menu
+        button.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func applyPresetFromMenu(_ sender: NSMenuItem) {
+        guard let preset = sender.representedObject as? BrightnessPreset else { return }
+        displayManager.applyPreset(preset)
+    }
+
+    @objc private func openSettings() {
+        NotificationCenter.default.post(name: NSNotification.Name("openSettings"), object: nil)
+        if !popover.isShown { openPopover() }
+    }
+
+    // MARK: - Popover
+
+    private func togglePopover() {
         if popover.isShown {
             closePopover()
         } else {

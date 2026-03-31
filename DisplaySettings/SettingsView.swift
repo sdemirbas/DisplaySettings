@@ -1,5 +1,5 @@
 // SettingsView.swift
-// App preferences sheet: launch at login, menu bar indicator, hotkeys, schedule, presets.
+// App preferences: launch at login, menu bar indicator, hotkeys, schedule, presets, dark mode, debug log.
 
 import SwiftUI
 
@@ -8,10 +8,11 @@ struct SettingsView: View {
     @ObservedObject private var schedule = ScheduleManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showAddSchedule = false
+    @State private var showAddSchedule   = false
     @State private var newScheduleHour: Int = 8
     @State private var newScheduleMinute: Int = 0
     @State private var newScheduleBrightness: Double = 70
+    @State private var showDebugLog      = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +42,39 @@ struct SettingsView: View {
                     Divider().padding(.leading, 42)
                     SettingsRow(icon: "percent", title: "Brightness in Menu Bar") {
                         Toggle("", isOn: $settings.showBrightnessInMenuBar).labelsHidden()
+                    }
+
+                    // MARK: Dark Mode Auto-Dim
+                    sectionHeader("Dark Mode")
+                        .padding(.top, 4)
+                    SettingsRow(icon: "moon.fill", title: "Auto-Dim on Dark Mode") {
+                        Toggle("", isOn: $settings.autoDimOnDarkMode).labelsHidden()
+                    }
+                    if settings.autoDimOnDarkMode {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Dark mode brightness")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(Int(settings.darkModeDimBrightness.rounded()))%")
+                                    .font(.system(size: 11).monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+                            Slider(value: $settings.darkModeDimBrightness, in: 0...100, step: 5)
+                            HStack {
+                                Text("Light mode brightness")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(Int(settings.lightModeBrightness.rounded()))%")
+                                    .font(.system(size: 11).monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+                            Slider(value: $settings.lightModeBrightness, in: 0...100, step: 5)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     }
 
                     // MARK: Hotkeys
@@ -133,11 +167,65 @@ struct SettingsView: View {
                             }
                         }
                     }
+
+                    // MARK: Debug Log
+                    sectionHeader("Debug Log")
+                        .padding(.top, 4)
+                    HStack {
+                        Button {
+                            showDebugLog.toggle()
+                        } label: {
+                            Label(showDebugLog ? "Hide Log" : "Show Log", systemImage: "terminal")
+                                .font(.system(size: 11))
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                        Button {
+                            DebugLogger.shared.clear()
+                        } label: {
+                            Text("Clear")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+
+                    if showDebugLog {
+                        let logText = DebugLogger.shared.text
+                        ScrollView {
+                            Text(logText.isEmpty ? "(no log entries)" : logText)
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                        }
+                        .frame(height: 120)
+                        .background(Color(NSColor.textBackgroundColor).opacity(0.5))
+                        .cornerRadius(6)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+
+                        Button {
+                            let pb = NSPasteboard.general
+                            pb.clearContents()
+                            pb.setString(logText, forType: .string)
+                        } label: {
+                            Label("Copy to Clipboard", systemImage: "doc.on.clipboard")
+                                .font(.system(size: 11))
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                    }
                 }
                 .padding(.bottom, 12)
             }
         }
-        .frame(width: 300, height: 460)
+        .frame(width: 300, height: 520)
         .sheet(isPresented: $showAddSchedule) { addScheduleSheet }
     }
 

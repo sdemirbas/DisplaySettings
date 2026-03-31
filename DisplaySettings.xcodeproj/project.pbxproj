@@ -19,6 +19,8 @@
 		CC22334455667788990011DD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD11223344556677889900CC /* SettingsView.swift */; };
 		EE33445566778899001122FF /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF22334455667788990011EE /* HotkeyManager.swift */; };
 		AA44556677889900112233BB /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB33445566778899001122AA /* ScheduleManager.swift */; };
+		FF55443322110099887766AA /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE44332211009988776655BB /* DebugLogger.swift */; };
+		CC66554433221100998877DD /* DisplayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55443322110099887766CC /* DisplayCardView.swift */; };
 		C887B33B5ADE4018BB45C06B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58A83FA5BB8A46539034B7F9 /* Assets.xcassets */; };
 		3DAC35F369254243B194639A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 659F3BF7B9C747D7BBF2372A /* IOKit.framework */; };
 /* End PBXBuildFile section */
@@ -36,6 +38,8 @@
 		DD11223344556677889900CC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FF22334455667788990011EE /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		BB33445566778899001122AA /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
+		EE44332211009988776655BB /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
+		DD55443322110099887766CC /* DisplayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCardView.swift; sourceTree = "<group>"; };
 		4DC9CB4213C1487D96324D3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58A83FA5BB8A46539034B7F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CEEEA5AA169540679C88AB6D /* DisplaySettings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplaySettings.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,6 +90,8 @@
 				DD11223344556677889900CC /* SettingsView.swift */,
 				FF22334455667788990011EE /* HotkeyManager.swift */,
 				BB33445566778899001122AA /* ScheduleManager.swift */,
+				EE44332211009988776655BB /* DebugLogger.swift */,
+				DD55443322110099887766CC /* DisplayCardView.swift */,
 				58A83FA5BB8A46539034B7F9 /* Assets.xcassets */,
 				4DC9CB4213C1487D96324D3E /* Info.plist */,
 			);
@@ -174,6 +180,8 @@
 				CC22334455667788990011DD /* SettingsView.swift in Sources */,
 				EE33445566778899001122FF /* HotkeyManager.swift in Sources */,
 				AA44556677889900112233BB /* ScheduleManager.swift in Sources */,
+				FF55443322110099887766AA /* DebugLogger.swift in Sources */,
+				CC66554433221100998877DD /* DisplayCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

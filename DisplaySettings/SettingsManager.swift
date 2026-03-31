@@ -1,5 +1,5 @@
 // SettingsManager.swift
-// Persistent app preferences: launch at login, presets, menu bar indicator.
+// Persistent app preferences: launch at login, presets, menu bar indicator, dark mode dim.
 
 import Foundation
 import ServiceManagement
@@ -8,6 +8,7 @@ struct BrightnessPreset: Codable, Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String
     var brightness: Double
+    var perDisplay: [String: Double] = [:]  // displayName → brightness
 }
 
 @MainActor
@@ -23,22 +24,39 @@ final class SettingsManager: ObservableObject {
     @Published var presets: [BrightnessPreset] {
         didSet { savePresets() }
     }
+    @Published var autoDimOnDarkMode: Bool {
+        didSet { UserDefaults.standard.set(autoDimOnDarkMode, forKey: Keys.autoDim) }
+    }
+    @Published var darkModeDimBrightness: Double {
+        didSet { UserDefaults.standard.set(darkModeDimBrightness, forKey: Keys.darkBrightness) }
+    }
+    @Published var lightModeBrightness: Double {
+        didSet { UserDefaults.standard.set(lightModeBrightness, forKey: Keys.lightBrightness) }
+    }
 
     private enum Keys {
-        static let menuBar = "showBrightnessInMenuBar"
-        static let presets = "brightnessPresets"
+        static let menuBar        = "showBrightnessInMenuBar"
+        static let presets        = "brightnessPresets"
+        static let autoDim        = "autoDimOnDarkMode"
+        static let darkBrightness = "darkModeDimBrightness"
+        static let lightBrightness = "lightModeBrightness"
     }
 
     private init() {
-        launchAtLogin = SMAppService.mainApp.status == .enabled
+        launchAtLogin          = SMAppService.mainApp.status == .enabled
         showBrightnessInMenuBar = UserDefaults.standard.bool(forKey: Keys.menuBar)
-        presets = Self.loadPresets()
+        presets                = Self.loadPresets()
+        autoDimOnDarkMode      = UserDefaults.standard.bool(forKey: Keys.autoDim)
+        let dark  = UserDefaults.standard.double(forKey: Keys.darkBrightness)
+        let light = UserDefaults.standard.double(forKey: Keys.lightBrightness)
+        darkModeDimBrightness  = dark  > 0 ? dark  : 30
+        lightModeBrightness    = light > 0 ? light : 80
     }
 
     // MARK: - Actions
 
-    func addPreset(name: String, brightness: Double) {
-        presets.append(BrightnessPreset(name: name, brightness: brightness))
+    func addPreset(name: String, brightness: Double, perDisplay: [String: Double] = [:]) {
+        presets.append(BrightnessPreset(name: name, brightness: brightness, perDisplay: perDisplay))
     }
 
     func deletePreset(id: UUID) {
@@ -55,7 +73,7 @@ final class SettingsManager: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            print("[Settings] Launch at login error: \(error)")
+            Task { @MainActor in DebugLogger.shared.log("[Settings] Launch at login error: \(error)") }
         }
     }
 
@@ -71,9 +89,9 @@ final class SettingsManager: ObservableObject {
             return saved
         }
         return [
-            BrightnessPreset(name: "Day", brightness: 80),
+            BrightnessPreset(name: "Day",     brightness: 80),
             BrightnessPreset(name: "Evening", brightness: 50),
-            BrightnessPreset(name: "Night", brightness: 20),
+            BrightnessPreset(name: "Night",   brightness: 20),
         ]
     }
 }
