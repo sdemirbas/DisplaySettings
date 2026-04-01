@@ -12,10 +12,12 @@ final class StatusBarController: NSObject {
     private var popover: NSPopover
     private var eventMonitor: EventMonitor?
     private let displayManager: DisplayManager
+    private let updateChecker: UpdateChecker
     private var cancellables: Set<AnyCancellable> = []
 
     override init() {
         displayManager = DisplayManager()
+        updateChecker  = UpdateChecker()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         popover = NSPopover()
         super.init()
@@ -42,6 +44,7 @@ final class StatusBarController: NSObject {
         popover.contentViewController = NSHostingController(
             rootView: ContentView()
                 .environmentObject(displayManager)
+                .environmentObject(updateChecker)
         )
         popover.behavior = .transient
         popover.animates = true
@@ -183,6 +186,7 @@ final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         eventMonitor?.start()
+        updateChecker.checkForUpdate()
     }
 
     private func closePopover() {

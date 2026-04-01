@@ -5,8 +5,8 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var displayManager: DisplayManager
-    @ObservedObject  private var settings = SettingsManager.shared
-    @StateObject     private var updateChecker = UpdateChecker()
+    @EnvironmentObject private var updateChecker: UpdateChecker
+    @ObservedObject    private var settings = SettingsManager.shared
 
     @State private var showSettings  = false
     @State private var showAddPreset = false
@@ -16,6 +16,11 @@ struct ContentView: View {
         VStack(spacing: 0) {
             header
             Divider()
+
+            if updateChecker.updateAvailable || updateChecker.isUpdating || updateChecker.updateInstalled {
+                updateBanner
+                Divider()
+            }
 
             if !settings.presets.isEmpty {
                 presetsBar
@@ -82,6 +87,49 @@ struct ContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
+    }
+
+    // MARK: - Update Banner
+
+    private var updateBanner: some View {
+        HStack(spacing: 8) {
+            if updateChecker.isUpdating {
+                ProgressView()
+                    .scaleEffect(0.75)
+                    .frame(width: 16, height: 16)
+                Text("Updating…")
+                    .font(.system(size: 12))
+                    .foregroundColor(.primary)
+            } else if updateChecker.updateInstalled {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 13))
+                Text("Updated! Relaunch to apply.")
+                    .font(.system(size: 12))
+                Spacer()
+                Button("Relaunch") {
+                    updateChecker.relaunch()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            } else if let ver = updateChecker.latestVersion {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 13))
+                Text("v\(ver) available")
+                    .font(.system(size: 12))
+                Spacer()
+                Button("Update") {
+                    updateChecker.installViaBrew()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(Color.accentColor.opacity(0.07))
     }
 
     // MARK: - Presets Bar
@@ -205,20 +253,6 @@ struct ContentView: View {
             Text("v\(updateChecker.currentVersion)")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-
-            if updateChecker.updateAvailable, let latest = updateChecker.latestVersion {
-                Button {
-                    NSWorkspace.shared.open(updateChecker.releasesURL)
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.down.circle.fill").font(.system(size: 10))
-                        Text("v\(latest) available").font(.system(size: 11))
-                    }
-                    .foregroundColor(.accentColor)
-                }
-                .buttonStyle(.plain)
-            }
-
             Spacer()
             Button("Quit") { NSApplication.shared.terminate(nil) }
                 .buttonStyle(.plain)
@@ -265,4 +299,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(DisplayManager())
+        .environmentObject(UpdateChecker())
 }
