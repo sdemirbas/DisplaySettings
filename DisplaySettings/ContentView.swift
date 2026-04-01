@@ -9,8 +9,9 @@ struct ContentView: View {
     @ObservedObject    private var settings = SettingsManager.shared
 
     @State private var showSettings  = false
-    @State private var showAddPreset = false
-    @State private var newPresetName = ""
+    @State private var showAddPreset       = false
+    @State private var newPresetName       = ""
+    @State private var newPresetBrightness = 80.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -159,8 +160,9 @@ struct ContentView: View {
                 }
 
                 Button {
-                    newPresetName = "Preset \(settings.presets.count + 1)"
-                    showAddPreset = true
+                    newPresetName       = "Preset \(settings.presets.count + 1)"
+                    newPresetBrightness = displayManager.masterBrightness
+                    showAddPreset       = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .medium))
@@ -269,22 +271,37 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Text("Save Preset")
                 .font(.headline)
+
             TextField("Name", text: $newPresetName)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
-            Text("Brightness: \(Int(displayManager.masterBrightness.rounded()))%")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Brightness")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("\(Int(newPresetBrightness.rounded()))%")
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                }
+                HStack(spacing: 6) {
+                    Image(systemName: "sun.min")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Slider(value: $newPresetBrightness, in: 0...100, step: 1)
+                    Image(systemName: "sun.max")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(width: 200)
+
             HStack(spacing: 12) {
                 Button("Cancel") { showAddPreset = false }
                 Button("Save") {
                     let name = newPresetName.trimmingCharacters(in: .whitespaces)
-                    let perDisplay = displayManager.capturedPerDisplayBrightness()
-                    settings.addPreset(
-                        name: name,
-                        brightness: displayManager.masterBrightness,
-                        perDisplay: perDisplay
-                    )
+                    settings.addPreset(name: name, brightness: newPresetBrightness)
                     showAddPreset = false
                 }
                 .buttonStyle(.borderedProminent)
