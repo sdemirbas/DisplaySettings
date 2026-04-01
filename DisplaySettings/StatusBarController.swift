@@ -154,8 +154,19 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func openSettings() {
-        NotificationCenter.default.post(name: NSNotification.Name("openSettings"), object: nil)
-        if !popover.isShown { openPopover() }
+        if popover.isShown {
+            NotificationCenter.default.post(name: NSNotification.Name("openSettings"), object: nil)
+        } else {
+            // Defer until the context menu is fully dismissed so button.window is valid
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.openPopover()
+                // Post after ContentView has subscribed via .onReceive
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("openSettings"), object: nil)
+                }
+            }
+        }
     }
 
     // MARK: - Popover
