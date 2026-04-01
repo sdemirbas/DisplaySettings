@@ -133,6 +133,10 @@ final class DisplayManager: ObservableObject {
                     }
                 } else {
                     model.ddcSupported = false
+                    // Fallback: software brightness via CoreDisplay or gamma table
+                    let swBrightness = SoftwareBrightnessHelper.getBrightness(displayID: id) ?? 100.0
+                    model.brightness = swBrightness
+                    model.usesSoftwareBrightness = true
                 }
                 result.append(model)
             }
@@ -146,12 +150,17 @@ final class DisplayManager: ObservableObject {
     // MARK: - Brightness
 
     func setBrightness(_ brightness: Double, for displayID: CGDirectDisplayID) {
+        let usesSoftware = displays.first(where: { $0.id == displayID })?.usesSoftwareBrightness ?? false
         if let idx = displays.firstIndex(where: { $0.id == displayID }) {
             displays[idx].brightness = brightness
         }
         pendingWrites[displayID]?.cancel()
         let item = DispatchWorkItem {
-            DDCHelper.writeBrightness(displayID: displayID, value: Int(brightness.rounded()))
+            if usesSoftware {
+                SoftwareBrightnessHelper.setBrightness(displayID: displayID, value: brightness)
+            } else {
+                DDCHelper.writeBrightness(displayID: displayID, value: Int(brightness.rounded()))
+            }
         }
         pendingWrites[displayID] = item
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.3, execute: item)

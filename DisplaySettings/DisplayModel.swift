@@ -17,6 +17,7 @@ struct DisplayModel: Identifiable, Equatable {
     var gainB: Double         // 0–100 from VCP 0x1A, -1 if not supported
     var resolution: String    // e.g. "2560×1440"
     var ddcSupported: Bool
+    var usesSoftwareBrightness: Bool  // true when DDC unavailable; brightness controlled via CoreDisplay/gamma
     var isLoading: Bool
 
     init(
@@ -35,6 +36,7 @@ struct DisplayModel: Identifiable, Equatable {
         gainB: Double = -1,
         resolution: String = "",
         ddcSupported: Bool = true,
+        usesSoftwareBrightness: Bool = false,
         isLoading: Bool = false
     ) {
         self.id = id
@@ -52,6 +54,7 @@ struct DisplayModel: Identifiable, Equatable {
         self.gainB = gainB
         self.resolution = resolution
         self.ddcSupported = ddcSupported
+        self.usesSoftwareBrightness = usesSoftwareBrightness
         self.isLoading = isLoading
     }
 }

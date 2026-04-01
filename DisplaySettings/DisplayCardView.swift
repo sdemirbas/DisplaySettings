@@ -48,6 +48,11 @@ struct DisplayCardView: View {
 
             if display.isLoading {
                 ProgressView().scaleEffect(0.6).frame(width: 20, height: 16)
+            } else if display.usesSoftwareBrightness {
+                Text("\(Int(display.brightness.rounded()))%")
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .foregroundColor(.secondary)
+                    .frame(minWidth: 32, alignment: .trailing)
             } else if display.ddcSupported {
                 Text("\(Int(display.brightness.rounded()))%")
                     .font(.system(size: 11, weight: .medium).monospacedDigit())
@@ -128,6 +133,24 @@ struct DisplayCardView: View {
                     gainSlider(label: "B", value: display.gainB, channel: 0x1A, color: .blue)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+            }
+        } else if display.usesSoftwareBrightness {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sun.min").font(.system(size: 10)).foregroundColor(.secondary)
+                    Slider(
+                        value: Binding(
+                            get: { display.brightness },
+                            set: { displayManager.setBrightness($0, for: display.id) }
+                        ),
+                        in: 0...100, step: 1
+                    )
+                    Image(systemName: "sun.max").font(.system(size: 10)).foregroundColor(.secondary)
+                }
+                Text("Software brightness (DDC not supported)")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+                    .padding(.leading, 16)
             }
         } else {
             HStack(spacing: 6) {
