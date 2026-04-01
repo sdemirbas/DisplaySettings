@@ -1,5 +1,5 @@
 // ContentView.swift
-// SwiftUI popover UI for BarDis menu bar app.
+// SwiftUI popover UI for Nit menu bar app.
 
 import SwiftUI
 
@@ -57,7 +57,7 @@ struct ContentView: View {
             Image(systemName: "display.2")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
-            Text("BarDis")
+            Text("Nit")
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
             Button { showSettings = true } label: {

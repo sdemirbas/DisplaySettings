@@ -42,7 +42,7 @@
 		DD55443322110099887766CC /* DisplayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCardView.swift; sourceTree = "<group>"; };
 		4DC9CB4213C1487D96324D3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58A83FA5BB8A46539034B7F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		CEEEA5AA169540679C88AB6D /* DisplaySettings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplaySettings.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CEEEA5AA169540679C88AB6D /* DisplaySettings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		659F3BF7B9C747D7BBF2372A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -113,8 +113,8 @@
 			);
 			dependencies = (
 			);
-			name = DisplaySettings;
-			productName = DisplaySettings;
+			name = Nit;
+			productName = Nit;
 			productReference = CEEEA5AA169540679C88AB6D /* DisplaySettings.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -325,7 +325,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.displaySettings.DisplaySettings;
+				PRODUCT_BUNDLE_IDENTIFIER = app.nit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -351,7 +351,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.displaySettings.DisplaySettings;
+				PRODUCT_BUNDLE_IDENTIFIER = app.nit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

@@ -32,7 +32,7 @@ final class StatusBarController: NSObject {
 
     private func configureStatusItem() {
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "BarDis")
+            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Nit")
             button.image?.isTemplate = true
             button.action = #selector(handleButtonClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -145,7 +145,7 @@ final class StatusBarController: NSObject {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit BarDis",
+            title: "Quit Nit",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

@@ -13,7 +13,7 @@ final class UpdateChecker: ObservableObject {
     @Published var updateInstalled         = false
 
     private let owner = "sdemirbas"
-    private let repo  = "DisplaySettings"
+    private let repo  = "Nit"
 
     var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -67,7 +67,7 @@ final class UpdateChecker: ObservableObject {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
-        process.arguments     = ["upgrade", "--cask", "displaybrightness"]
+        process.arguments     = ["upgrade", "--cask", "nit"]
 
         process.terminationHandler = { [weak self] p in
             DispatchQueue.main.async {
