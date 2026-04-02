@@ -30,3 +30,6 @@ Podfile.lock
 # Release artifacts (built locally)
 *.zip
 *.dmg
+
+# Landing page — deployed to Vercel separately
+docs/index.html

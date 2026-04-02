@@ -614,6 +614,24 @@ section {
   justify-content: center;
 }
 
+.security-note {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.security-note a {
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.security-note a:hover {
+  text-decoration: underline;
+}
+
 .code-snippet {
   background: var(--bg);
   border: 1px solid var(--border);
