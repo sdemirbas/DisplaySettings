@@ -53,48 +53,31 @@ final class UpdateChecker: ObservableObject {
         }.resume()
     }
 
-    // MARK: - Install via Homebrew
+    // MARK: - Open releases page + show Relaunch
 
     func installViaBrew() {
-        let brewCandidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
-        guard let brewPath = brewCandidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-            NSWorkspace.shared.open(releasesURL)
-            return
-        }
-
-        isUpdating      = true
-        updateInstalled = false
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: brewPath)
-        process.arguments     = ["upgrade", "--cask", "nit"]
-
-        process.terminationHandler = { [weak self] p in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isUpdating = false
-                if p.terminationStatus == 0 {
-                    self.updateInstalled = true
-                    self.updateAvailable = false
-                } else {
-                    NSWorkspace.shared.open(self.releasesURL)
-                }
-            }
-        }
-
-        do    { try process.run() }
-        catch { isUpdating = false; NSWorkspace.shared.open(releasesURL) }
+        // Nit is distributed as a DMG — open the releases page so the user
+        // can download and replace the app, then click Relaunch.
+        NSWorkspace.shared.open(releasesURL)
+        updateInstalled = true   // Show the Relaunch button immediately
+        updateAvailable = false
     }
 
     // MARK: - Relaunch
 
     func relaunch() {
-        let appName  = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "DisplaySettings"
-        let appURL   = URL(fileURLWithPath: "/Applications/\(appName).app")
-        let config   = NSWorkspace.OpenConfiguration()
-        config.activates = true
-        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { _, _ in }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        // Use the running bundle's own path so this works whether the app lives
+        // in /Applications, ~/Applications, or anywhere else.
+        let appPath = Bundle.main.bundleURL.path
+
+        // `open -n` forces a brand-new process even if one is already running,
+        // so the freshly-replaced binary is what actually launches.
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 0.4 && open -n \"\(appPath)\""]
+        try? task.run()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             NSApplication.shared.terminate(nil)
         }
     }
