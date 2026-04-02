@@ -1,5 +1,5 @@
 // UpdateChecker.swift
-// Checks GitHub releases API for a newer version and handles in-app updates via Homebrew.
+// Checks GitHub releases API for a newer version and auto-installs via DMG download.
 
 import AppKit
 import Foundation
@@ -11,9 +11,12 @@ final class UpdateChecker: ObservableObject {
     @Published var isChecking              = false
     @Published var isUpdating              = false
     @Published var updateInstalled         = false
+    @Published var downloadProgress: Double = 0   // 0.0 – 1.0 while downloading
 
     private let owner = "sdemirbas"
     private let repo  = "Nit"
+
+    private var progressObserver: NSKeyValueObservation?
 
     var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -21,6 +24,10 @@ final class UpdateChecker: ObservableObject {
 
     var releasesURL: URL {
         URL(string: "https://github.com/\(owner)/\(repo)/releases/latest")!
+    }
+
+    private var dmgDownloadURL: URL {
+        URL(string: "https://github.com/\(owner)/\(repo)/releases/latest/download/Nit.dmg")!
     }
 
     // MARK: - Check
@@ -53,25 +60,86 @@ final class UpdateChecker: ObservableObject {
         }.resume()
     }
 
-    // MARK: - Open releases page + show Relaunch
+    // MARK: - Install (automated: download DMG → mount → copy → strip quarantine)
 
-    func installViaBrew() {
-        // Nit is distributed as a DMG — open the releases page so the user
-        // can download and replace the app, then click Relaunch.
-        NSWorkspace.shared.open(releasesURL)
-        updateInstalled = true   // Show the Relaunch button immediately
-        updateAvailable = false
+    func installUpdate() {
+        guard !isUpdating else { return }
+        isUpdating = true
+        downloadProgress = 0
+
+        let destPath = (NSTemporaryDirectory() as NSString)
+            .appendingPathComponent("Nit-update.dmg")
+
+        let downloadTask = URLSession.shared.downloadTask(with: dmgDownloadURL) { [weak self] tempURL, _, error in
+            guard let self else { return }
+
+            // Move downloaded file to a stable temp path
+            var dmgURL: URL? = nil
+            if let tempURL, error == nil {
+                let dest = URL(fileURLWithPath: destPath)
+                try? FileManager.default.removeItem(at: dest)
+                if (try? FileManager.default.moveItem(at: tempURL, to: dest)) != nil {
+                    dmgURL = dest
+                }
+            }
+
+            guard let dmgFile = dmgURL else {
+                Task { @MainActor [weak self] in self?.fallbackToManual() }
+                return
+            }
+
+            // Run install script on this background thread
+            let script = """
+            set -e
+            MOUNT=$(hdiutil attach '\(dmgFile.path)' -nobrowse -readonly -noverify 2>/dev/null \
+                | awk 'END{print $NF}')
+            [ -d "/Applications/Nit.app" ] && rm -rf "/Applications/Nit.app"
+            cp -R "$MOUNT/Nit.app" "/Applications/Nit.app"
+            xattr -dr com.apple.quarantine "/Applications/Nit.app" 2>/dev/null || true
+            hdiutil detach "$MOUNT" -quiet 2>/dev/null || true
+            rm -f '\(dmgFile.path)'
+            """
+
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/bin/sh")
+            proc.arguments     = ["-c", script]
+
+            do {
+                try proc.run()
+                proc.waitUntilExit()
+                let ok = proc.terminationStatus == 0
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    if ok {
+                        self.updateInstalled = true
+                        self.updateAvailable = false
+                    } else {
+                        self.fallbackToManual()
+                    }
+                    self.isUpdating       = false
+                    self.downloadProgress = 0
+                }
+            } catch {
+                Task { @MainActor [weak self] in self?.fallbackToManual() }
+            }
+        }
+
+        // Track download progress via KVO
+        progressObserver = downloadTask.progress
+            .observe(\.fractionCompleted, options: [.new]) { [weak self] progress, _ in
+                let fraction = progress.fractionCompleted
+                Task { @MainActor [weak self] in
+                    self?.downloadProgress = fraction
+                }
+            }
+
+        downloadTask.resume()
     }
 
     // MARK: - Relaunch
 
     func relaunch() {
-        // Use the running bundle's own path so this works whether the app lives
-        // in /Applications, ~/Applications, or anywhere else.
         let appPath = Bundle.main.bundleURL.path
-
-        // `open -n` forces a brand-new process even if one is already running,
-        // so the freshly-replaced binary is what actually launches.
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")
         task.arguments = ["-c", "sleep 0.4 && open -n \"\(appPath)\""]
@@ -83,6 +151,14 @@ final class UpdateChecker: ObservableObject {
     }
 
     // MARK: - Private
+
+    private func fallbackToManual() {
+        NSWorkspace.shared.open(releasesURL)
+        updateInstalled = true
+        updateAvailable = false
+        isUpdating      = false
+        downloadProgress = 0
+    }
 
     private nonisolated func isVersion(_ a: String, newerThan b: String) -> Bool {
         let aParts = a.split(separator: ".").compactMap { Int($0) }

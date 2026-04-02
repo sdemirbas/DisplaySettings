@@ -94,38 +94,54 @@ struct ContentView: View {
     // MARK: - Update Banner
 
     private var updateBanner: some View {
-        HStack(spacing: 8) {
-            if updateChecker.isUpdating {
-                ProgressView()
-                    .scaleEffect(0.75)
-                    .frame(width: 16, height: 16)
-                Text("Updating…")
-                    .font(.system(size: 12))
-                    .foregroundColor(.primary)
-            } else if updateChecker.updateInstalled {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                    .font(.system(size: 13))
-                Text("Updated! Relaunch to apply.")
-                    .font(.system(size: 12))
-                Spacer()
-                Button("Relaunch") {
-                    updateChecker.relaunch()
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                if updateChecker.isUpdating {
+                    if updateChecker.downloadProgress > 0 {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundColor(.accentColor)
+                            .font(.system(size: 13))
+                        Text("Downloading… \(Int(updateChecker.downloadProgress * 100))%")
+                            .font(.system(size: 12))
+                    } else {
+                        ProgressView()
+                            .scaleEffect(0.75)
+                            .frame(width: 16, height: 16)
+                        Text("Preparing…")
+                            .font(.system(size: 12))
+                    }
+                    Spacer()
+                } else if updateChecker.updateInstalled {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 13))
+                    Text("Updated! Relaunch to apply.")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Button("Relaunch") {
+                        updateChecker.relaunch()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                } else if let ver = updateChecker.latestVersion {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundColor(.accentColor)
+                        .font(.system(size: 13))
+                    Text("v\(ver) available")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Button("Update") {
+                        updateChecker.installUpdate()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            } else if let ver = updateChecker.latestVersion {
-                Image(systemName: "arrow.down.circle.fill")
-                    .foregroundColor(.accentColor)
-                    .font(.system(size: 13))
-                Text("v\(ver) available")
-                    .font(.system(size: 12))
-                Spacer()
-                Button("Update") {
-                    updateChecker.installViaBrew()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+            }
+
+            if updateChecker.isUpdating && updateChecker.downloadProgress > 0 {
+                ProgressView(value: updateChecker.downloadProgress)
+                    .progressViewStyle(.linear)
+                    .tint(.accentColor)
             }
         }
         .padding(.horizontal, 14)
