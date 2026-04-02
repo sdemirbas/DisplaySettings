@@ -22,6 +22,9 @@
 		FF55443322110099887766AA /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE44332211009988776655BB /* DebugLogger.swift */; };
 		CC66554433221100998877DD /* DisplayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55443322110099887766CC /* DisplayCardView.swift */; };
 		AB12CD34EF5678901234ABCD /* SoftwareBrightnessHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF12AB34CD567890ABCDEF12 /* SoftwareBrightnessHelper.swift */; };
+		F611E500D400C300B200A100 /* AmbientLightManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100B200C300D400E500F611 /* AmbientLightManager.swift */; };
+		F711E600D500C400B300A200 /* AppBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200B300C400D500E600F711 /* AppBrightnessManager.swift */; };
+		F811E700D600C500B400A300 /* NitIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A300B400C500D600E700F811 /* NitIntents.swift */; };
 		C887B33B5ADE4018BB45C06B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 58A83FA5BB8A46539034B7F9 /* Assets.xcassets */; };
 		3DAC35F369254243B194639A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 659F3BF7B9C747D7BBF2372A /* IOKit.framework */; };
 /* End PBXBuildFile section */
@@ -42,6 +45,9 @@
 		EE44332211009988776655BB /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		DD55443322110099887766CC /* DisplayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCardView.swift; sourceTree = "<group>"; };
 		EF12AB34CD567890ABCDEF12 /* SoftwareBrightnessHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareBrightnessHelper.swift; sourceTree = "<group>"; };
+		A100B200C300D400E500F611 /* AmbientLightManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbientLightManager.swift; sourceTree = "<group>"; };
+		A200B300C400D500E600F711 /* AppBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBrightnessManager.swift; sourceTree = "<group>"; };
+		A300B400C500D600E700F811 /* NitIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NitIntents.swift; sourceTree = "<group>"; };
 		4DC9CB4213C1487D96324D3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		58A83FA5BB8A46539034B7F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CEEEA5AA169540679C88AB6D /* DisplaySettings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nit.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -95,6 +101,9 @@
 				EE44332211009988776655BB /* DebugLogger.swift */,
 				DD55443322110099887766CC /* DisplayCardView.swift */,
 				EF12AB34CD567890ABCDEF12 /* SoftwareBrightnessHelper.swift */,
+				A100B200C300D400E500F611 /* AmbientLightManager.swift */,
+				A200B300C400D500E600F711 /* AppBrightnessManager.swift */,
+				A300B400C500D600E700F811 /* NitIntents.swift */,
 				58A83FA5BB8A46539034B7F9 /* Assets.xcassets */,
 				4DC9CB4213C1487D96324D3E /* Info.plist */,
 			);
@@ -186,6 +195,9 @@
 				FF55443322110099887766AA /* DebugLogger.swift in Sources */,
 				CC66554433221100998877DD /* DisplayCardView.swift in Sources */,
 				AB12CD34EF5678901234ABCD /* SoftwareBrightnessHelper.swift in Sources */,
+				F611E500D400C300B200A100 /* AmbientLightManager.swift in Sources */,
+				F711E600D500C400B300A200 /* AppBrightnessManager.swift in Sources */,
+				F811E700D600C500B400A300 /* NitIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

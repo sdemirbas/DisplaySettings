@@ -8,7 +8,8 @@ struct BrightnessPreset: Codable, Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String
     var brightness: Double
-    var perDisplay: [String: Double] = [:]  // displayName → brightness
+    var perDisplay: [String: Double] = [:]      // uniqueID → brightness
+    var perDisplayNames: [String: String] = [:] // uniqueID → display name at capture time
 }
 
 @MainActor
@@ -33,6 +34,12 @@ final class SettingsManager: ObservableObject {
     @Published var lightModeBrightness: Double {
         didSet { UserDefaults.standard.set(lightModeBrightness, forKey: Keys.lightBrightness) }
     }
+    @Published var f1f2BrightnessKeys: Bool {
+        didSet {
+            UserDefaults.standard.set(f1f2BrightnessKeys, forKey: Keys.f1f2Keys)
+            HotkeyManager.shared.reregister()
+        }
+    }
 
     private enum Keys {
         static let menuBar        = "showBrightnessInMenuBar"
@@ -40,6 +47,7 @@ final class SettingsManager: ObservableObject {
         static let autoDim        = "autoDimOnDarkMode"
         static let darkBrightness = "darkModeDimBrightness"
         static let lightBrightness = "lightModeBrightness"
+        static let f1f2Keys       = "f1f2BrightnessKeys"
     }
 
     private init() {
@@ -51,12 +59,13 @@ final class SettingsManager: ObservableObject {
         let light = UserDefaults.standard.double(forKey: Keys.lightBrightness)
         darkModeDimBrightness  = dark  > 0 ? dark  : 30
         lightModeBrightness    = light > 0 ? light : 80
+        f1f2BrightnessKeys     = UserDefaults.standard.bool(forKey: Keys.f1f2Keys)
     }
 
     // MARK: - Actions
 
-    func addPreset(name: String, brightness: Double, perDisplay: [String: Double] = [:]) {
-        presets.append(BrightnessPreset(name: name, brightness: brightness, perDisplay: perDisplay))
+    func addPreset(name: String, brightness: Double, perDisplay: [String: Double] = [:], perDisplayNames: [String: String] = [:]) {
+        presets.append(BrightnessPreset(name: name, brightness: brightness, perDisplay: perDisplay, perDisplayNames: perDisplayNames))
     }
 
     func deletePreset(id: UUID) {

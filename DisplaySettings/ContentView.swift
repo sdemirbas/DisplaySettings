@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showAddPreset       = false
     @State private var newPresetName       = ""
     @State private var newPresetBrightness = 80.0
+    @State private var savePerDisplayValues = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +29,7 @@ struct ContentView: View {
                 Divider()
             }
 
-            let ddcDisplays = displayManager.displays.filter { $0.ddcSupported }
+            let ddcDisplays = displayManager.displays.filter { $0.ddcSupported || $0.usesSoftwareBrightness }
             if ddcDisplays.count > 1 {
                 masterSlider
                 Divider()
@@ -223,7 +224,7 @@ struct ContentView: View {
             Image(systemName: "display.trianglebadge.exclamationmark")
                 .font(.system(size: 28))
                 .foregroundColor(.secondary)
-            Text("No external displays found")
+            Text("No controllable displays found")
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -297,11 +298,51 @@ struct ContentView: View {
             }
             .frame(width: 200)
 
+            let controllable = displayManager.displays.filter { $0.ddcSupported || $0.usesSoftwareBrightness }
+            if controllable.count > 1 {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle(isOn: $savePerDisplayValues) {
+                        Text("Save individual screen brightness")
+                            .font(.system(size: 12))
+                    }
+                    .toggleStyle(.checkbox)
+                    if savePerDisplayValues {
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(controllable) { display in
+                                HStack {
+                                    Text(display.name)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text("\(Int(display.brightness.rounded()))%")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.leading, 20)
+                    }
+                }
+                .frame(width: 200)
+            }
+
             HStack(spacing: 12) {
-                Button("Cancel") { showAddPreset = false }
+                Button("Cancel") {
+                    savePerDisplayValues = false
+                    showAddPreset = false
+                }
                 Button("Save") {
                     let name = newPresetName.trimmingCharacters(in: .whitespaces)
-                    settings.addPreset(name: name, brightness: newPresetBrightness)
+                    let perDisplay = savePerDisplayValues
+                        ? displayManager.capturedPerDisplayBrightness()
+                        : [String: Double]()
+                    let perDisplayNames = savePerDisplayValues
+                        ? displayManager.capturedPerDisplayNames()
+                        : [String: String]()
+                    settings.addPreset(name: name, brightness: newPresetBrightness,
+                                       perDisplay: perDisplay, perDisplayNames: perDisplayNames)
+                    savePerDisplayValues = false
                     showAddPreset = false
                 }
                 .buttonStyle(.borderedProminent)

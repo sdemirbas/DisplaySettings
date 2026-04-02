@@ -22,5 +22,18 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Nit uses Apple Events to support Shortcuts automation.</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>nit</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>app.nit.brightness</string>
+        </dict>
+    </array>
 </dict>
 </plist>

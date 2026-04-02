@@ -27,7 +27,7 @@ struct DisplayCardView: View {
 
     private var nameRow: some View {
         HStack(spacing: 8) {
-            Image(systemName: "display")
+            Image(systemName: display.isBuiltin ? "laptopcomputer" : "display")
                 .font(.system(size: 13))
                 .foregroundColor(.accentColor)
                 .frame(width: 18)

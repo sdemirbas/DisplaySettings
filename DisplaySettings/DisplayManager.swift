@@ -10,6 +10,8 @@ import IOKit.graphics
 @MainActor
 final class DisplayManager: ObservableObject {
 
+    static let shared = DisplayManager()
+
     @Published var displays: [DisplayModel] = []
     @Published var isRefreshing: Bool = false
 
@@ -28,15 +30,24 @@ final class DisplayManager: ObservableObject {
     // MARK: - Computed
 
     var masterBrightness: Double {
-        let active = displays.filter { $0.ddcSupported }
+        let active = displays.filter { $0.ddcSupported || $0.usesSoftwareBrightness }
         guard !active.isEmpty else { return 50 }
         return active.map(\.brightness).reduce(0, +) / Double(active.count)
     }
 
     func capturedPerDisplayBrightness() -> [String: Double] {
         var dict: [String: Double] = [:]
-        for display in displays where display.ddcSupported {
-            dict[display.name] = display.brightness
+        for display in displays where display.ddcSupported || display.usesSoftwareBrightness {
+            dict[display.uniqueID.isEmpty ? display.name : display.uniqueID] = display.brightness
+        }
+        return dict
+    }
+
+    func capturedPerDisplayNames() -> [String: String] {
+        var dict: [String: String] = [:]
+        for display in displays where display.ddcSupported || display.usesSoftwareBrightness {
+            let key = display.uniqueID.isEmpty ? display.name : display.uniqueID
+            dict[key] = display.name
         }
         return dict
     }
@@ -91,16 +102,29 @@ final class DisplayManager: ObservableObject {
         var models = await Task.detached(priority: .userInitiated) {
             var result: [DisplayModel] = []
 
-            var displayIDs = [CGDirectDisplayID](repeating: 0, count: 16)
             var displayCount: UInt32 = 0
-            CGGetActiveDisplayList(16, &displayIDs, &displayCount)
+            CGGetActiveDisplayList(0, nil, &displayCount)
+            guard displayCount > 0 else { return [DisplayModel]() }
+            var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
+            CGGetActiveDisplayList(displayCount, &displayIDs, &displayCount)
 
             for i in 0..<Int(displayCount) {
                 let id = displayIDs[i]
-                if CGDisplayIsBuiltin(id) != 0 { continue }
-
+                let isBuiltin = CGDisplayIsBuiltin(id) != 0
                 let name = DisplayManager.displayName(for: id)
-                var model = DisplayModel(id: id, name: name)
+                var model = DisplayModel(id: id, name: name, isBuiltin: isBuiltin)
+
+                if isBuiltin {
+                    // Built-in displays (MacBook Retina, iMac) never use DDC.
+                    let swBrightness = SoftwareBrightnessHelper.getBrightness(displayID: id) ?? 100.0
+                    model.brightness = min(swBrightness, 100.0)
+                    model.ddcSupported = false
+                    model.usesSoftwareBrightness = true
+                    let serial = CGDisplaySerialNumber(id)
+                    model.uniqueID = "BUILTIN_\(serial > 0 ? serial : id)"
+                    result.append(model)
+                    continue
+                }
 
                 if let (val, maxVal) = DDCHelper.readBrightness(displayID: id), maxVal > 0 {
                     model.brightness    = min(max(Double(val) / Double(maxVal) * 100.0, 0), 100)
@@ -138,6 +162,9 @@ final class DisplayManager: ObservableObject {
                     model.brightness = swBrightness
                     model.usesSoftwareBrightness = true
                 }
+                // Assign stable unique ID for external displays (used as preset key)
+                let stableID = DDCHelper.stableDisplayID(displayID: id)
+                model.uniqueID = stableID.isEmpty ? "EXT_\(id)" : stableID
                 result.append(model)
             }
             return result
@@ -167,7 +194,7 @@ final class DisplayManager: ObservableObject {
     }
 
     func setMasterBrightness(_ brightness: Double) {
-        for display in displays where display.ddcSupported {
+        for display in displays where display.ddcSupported || display.usesSoftwareBrightness {
             setBrightness(brightness, for: display.id)
         }
     }
@@ -252,8 +279,9 @@ final class DisplayManager: ObservableObject {
         if preset.perDisplay.isEmpty {
             setMasterBrightness(preset.brightness)
         } else {
-            for display in displays where display.ddcSupported {
-                let brightness = preset.perDisplay[display.name] ?? preset.brightness
+            for display in displays where display.ddcSupported || display.usesSoftwareBrightness {
+                let key = display.uniqueID.isEmpty ? display.name : display.uniqueID
+                let brightness = preset.perDisplay[key] ?? preset.perDisplay[display.name] ?? preset.brightness
                 setBrightness(brightness, for: display.id)
             }
         }

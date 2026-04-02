@@ -16,7 +16,7 @@ final class StatusBarController: NSObject {
     private var cancellables: Set<AnyCancellable> = []
 
     override init() {
-        displayManager = DisplayManager()
+        displayManager = DisplayManager.shared
         updateChecker  = UpdateChecker()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         popover = NSPopover()
@@ -68,6 +68,8 @@ final class StatusBarController: NSObject {
     private func setupHotkeysAndSchedule() {
         HotkeyManager.shared.register(displayManager: displayManager)
         ScheduleManager.shared.attach(displayManager: displayManager)
+        AmbientLightManager.shared.start(with: displayManager)
+        AppBrightnessManager.shared.start(with: displayManager)
     }
 
     // MARK: - Menu Bar Brightness Indicator

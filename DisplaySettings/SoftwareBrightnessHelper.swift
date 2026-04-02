@@ -43,7 +43,7 @@ final class SoftwareBrightnessHelper {
         if let fn = cdGet {
             var val: Float = 0
             if fn(displayID, &val) == 0, val > 0 {
-                return Double(val) * 100.0
+                return min(Double(val) * 100.0, 100.0)
             }
         }
         return gammaBasedBrightness(displayID: displayID)

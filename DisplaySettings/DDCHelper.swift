@@ -253,9 +253,10 @@ final class DDCHelper {
         }
 
         // Count active external displays
-        var allIDs = [CGDirectDisplayID](repeating: 0, count: 16)
         var count: UInt32 = 0
-        CGGetActiveDisplayList(16, &allIDs, &count)
+        CGGetActiveDisplayList(0, nil, &count)
+        var allIDs = [CGDirectDisplayID](repeating: 0, count: max(Int(count), 1))
+        CGGetActiveDisplayList(count, &allIDs, &count)
         let externalCount = (0..<Int(count)).filter { CGDisplayIsBuiltin(allIDs[$0]) == 0 }.count
 
         // ── Fast path: only one external display ──────────────────────────────
@@ -306,7 +307,7 @@ final class DDCHelper {
 
     // MARK: - EDID reading (for multi-monitor matching)
 
-    private static func readEDID(service: UnsafeMutableRawPointer) -> [UInt8]? {
+    static func readEDID(service: UnsafeMutableRawPointer) -> [UInt8]? {
         if let copyFn = avCopyEDID, let cfData = copyFn(service)?.takeRetainedValue() {
             let bytes = Array(cfData as Data)
             if bytes.count >= 8 && bytes[0] == 0x00 && bytes[1] == 0xFF { return bytes }
@@ -318,6 +319,39 @@ final class DDCHelper {
         }
         guard ret == 0, edid[0] == 0x00, edid[1] == 0xFF else { return nil }
         return edid
+    }
+
+    /// Extracts the serial number string from EDID descriptor blocks (bytes 54-125).
+    /// Each descriptor is 18 bytes. Type 0xFF = serial number descriptor.
+    static func extractEDIDSerial(edid: [UInt8]) -> String? {
+        guard edid.count >= 128 else { return nil }
+        for blockStart in stride(from: 54, to: 126, by: 18) {
+            guard edid[blockStart]     == 0x00,
+                  edid[blockStart + 1] == 0x00,
+                  edid[blockStart + 2] == 0x00,
+                  edid[blockStart + 3] == 0xFF else { continue }
+            let serialBytes = edid[(blockStart + 5)..<min(blockStart + 18, edid.count)]
+            let chars = serialBytes
+                .prefix(while: { $0 != 0x0A && $0 != 0x00 })
+                .compactMap { $0 > 31 ? Character(UnicodeScalar($0)) : nil }
+            return chars.isEmpty ? nil : String(chars)
+        }
+        return nil
+    }
+
+    /// Returns a stable string identifier for an external display using EDID vendor, product, and serial.
+    /// Format: "V<vendor>_P<product>_S<serial>" or "V<vendor>_P<product>" if serial not available.
+    static func stableDisplayID(displayID: CGDirectDisplayID) -> String {
+        loadAVService()
+        let vendor  = CGDisplayVendorNumber(displayID)
+        let product = CGDisplayModelNumber(displayID)
+        var serialPart = ""
+        if let svc = findAVService(for: displayID),
+           let edid = readEDID(service: svc),
+           let serial = extractEDIDSerial(edid: edid) {
+            serialPart = "_S\(serial)"
+        }
+        return "V\(vendor)_P\(product)\(serialPart)"
     }
 
     // MARK: - IOAVService DDC write / read

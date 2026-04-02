@@ -6,6 +6,8 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @ObservedObject private var schedule = ScheduleManager.shared
+    @ObservedObject private var alsManager = AmbientLightManager.shared
+    @ObservedObject private var appBrightnessManager = AppBrightnessManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showAddSchedule   = false
@@ -77,6 +79,83 @@ struct SettingsView: View {
                         .padding(.vertical, 8)
                     }
 
+                    // MARK: Ambient Light
+                    sectionHeader("Ambient Light")
+                        .padding(.top, 4)
+                    SettingsRow(icon: "sun.max", title: "Auto-Adjust to Ambient Light") {
+                        Toggle("", isOn: $alsManager.isEnabled).labelsHidden()
+                    }
+
+                    // MARK: App-Aware Brightness
+                    sectionHeader("App Brightness")
+                        .padding(.top, 4)
+                    SettingsRow(icon: "app.badge", title: "Per-App Brightness") {
+                        Toggle("", isOn: $appBrightnessManager.isEnabled).labelsHidden()
+                    }
+                    if appBrightnessManager.isEnabled {
+                        if appBrightnessManager.rules.isEmpty {
+                            Text("No rules. Running apps appear below.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 4)
+                        } else {
+                            ForEach(appBrightnessManager.rules) { rule in
+                                HStack {
+                                    Text(rule.appName)
+                                        .font(.system(size: 11))
+                                        .padding(.leading, 16)
+                                    Spacer()
+                                    Text("\(Int(rule.brightness.rounded()))%")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                    Button {
+                                        appBrightnessManager.removeRule(id: rule.id)
+                                    } label: {
+                                        Image(systemName: "minus.circle")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.red.opacity(0.7))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.trailing, 16)
+                                }
+                                .frame(height: 30)
+                            }
+                        }
+                        // Running apps list for quick-add
+                        let runningApps = NSWorkspace.shared.runningApplications
+                            .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != nil }
+                        if !runningApps.isEmpty {
+                            Text("Add from running apps:")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 4)
+                            ForEach(runningApps.prefix(5), id: \.bundleIdentifier) { app in
+                                HStack {
+                                    Text(app.localizedName ?? (app.bundleIdentifier ?? ""))
+                                        .font(.system(size: 11))
+                                        .padding(.leading, 16)
+                                    Spacer()
+                                    Button {
+                                        appBrightnessManager.addRule(
+                                            bundleID: app.bundleIdentifier ?? "",
+                                            appName: app.localizedName ?? "",
+                                            brightness: 70
+                                        )
+                                    } label: {
+                                        Image(systemName: "plus.circle")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.accentColor)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.trailing, 16)
+                                }
+                                .frame(height: 28)
+                            }
+                        }
+                    }
+
                     // MARK: Hotkeys
                     sectionHeader("Global Hotkeys")
                         .padding(.top, 4)
@@ -87,9 +166,22 @@ struct SettingsView: View {
                         Label("Ctrl+Cmd+↓  →  All displays -5%", systemImage: "command")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
+                        if settings.f1f2BrightnessKeys {
+                            Label("F1  →  All displays -5%", systemImage: "command")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            Label("F2  →  All displays +5%", systemImage: "command")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 4)
+                    Divider().padding(.leading, 42)
+                    SettingsRow(icon: "f.cursive", title: "F1/F2 Brightness Keys") {
+                        Toggle("", isOn: $settings.f1f2BrightnessKeys).labelsHidden()
+                    }
+                    .padding(.bottom, 4)
 
                     // MARK: Scheduled Brightness
                     sectionHeader("Scheduled Brightness")
@@ -162,6 +254,26 @@ struct SettingsView: View {
                                 .padding(.trailing, 16)
                             }
                             .frame(height: 34)
+                            // Per-display breakdown (shown when preset has individual screen values)
+                            if !preset.perDisplayNames.isEmpty {
+                                ForEach(Array(preset.perDisplayNames.keys.sorted()), id: \.self) { key in
+                                    if let brightness = preset.perDisplay[key],
+                                       let displayName = preset.perDisplayNames[key] {
+                                        HStack {
+                                            Text(displayName)
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.secondary)
+                                                .lineLimit(1)
+                                                .padding(.leading, 16)
+                                            Spacer()
+                                            Text("\(Int(brightness.rounded()))%")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.secondary)
+                                                .padding(.trailing, 16)
+                                        }
+                                    }
+                                }
+                            }
                             if preset.id != settings.presets.last?.id {
                                 Divider().padding(.leading, 16)
                             }
@@ -225,7 +337,7 @@ struct SettingsView: View {
                 .padding(.bottom, 12)
             }
         }
-        .frame(width: 300, height: 520)
+        .frame(width: 300, height: 600)
         .sheet(isPresented: $showAddSchedule) { addScheduleSheet }
     }
 

@@ -3,118 +3,87 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-macos:
+    name: Build macOS DMG
     runs-on: macos-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Select latest Xcode
-        run: sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-
-      - name: Build (Release, Universal Binary)
+      - name: Build archive
         run: |
           xcodebuild \
-            -project DisplaySettings.xcodeproj \
-            -scheme DisplaySettings \
+            -scheme Nit \
             -configuration Release \
-            -derivedDataPath .build \
-            ARCHS="arm64 x86_64" \
-            ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES \
-            build
+            -archivePath ./build/Nit.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
 
-      - name: Package ZIP
-        id: package
+      - name: Create DMG
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          FILENAME="DisplaySettings-${VERSION}.zip"
-          ditto -c -k --keepParent \
-            ".build/Build/Products/Release/DisplaySettings.app" \
-            "${FILENAME}"
-          SHA=$(shasum -a 256 "${FILENAME}" | awk '{print $1}')
-          echo "version=${VERSION}"  >> $GITHUB_OUTPUT
-          echo "sha256=${SHA}"       >> $GITHUB_OUTPUT
-          echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
-          echo "SHA256: ${SHA}"
+          mkdir -p build/dmg-staging
+          cp -R build/Nit.xcarchive/Products/Applications/Nit.app build/dmg-staging/
+          hdiutil create \
+            -volname "Nit" \
+            -srcfolder build/dmg-staging \
+            -ov -format UDZO \
+            build/Nit.dmg
 
-      - name: Create GitHub Release
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nit-macOS
+          path: build/Nit.dmg
+
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyinstaller pillow pystray
+
+      - name: Build EXE
+        run: pyinstaller --onefile --windowed --name Nit windows/nit.py
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nit-Windows
+          path: dist/Nit.exe
+
+  release:
+    name: Create GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Nit-macOS
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Nit-Windows
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "DisplaySettings v${{ steps.package.outputs.version }}"
-          files: ${{ steps.package.outputs.filename }}
-          body: |
-            ## DisplaySettings v${{ steps.package.outputs.version }}
-
-            macOS menu bar app to control external display brightness via DDC/CI.
-            Works with LG, Samsung, and other DDC-compatible monitors.
-
-            ---
-
-            ### Install via Homebrew (recommended)
-
-            ```bash
-            brew tap ${{ github.repository_owner }}/displaybrightness
-            brew install --cask displaybrightness
-            ```
-
-            ### Manual install
-
-            1. Download `DisplaySettings-${{ steps.package.outputs.version }}.zip`
-            2. Extract and drag `DisplaySettings.app` to `/Applications`
-            3. First launch: right-click → Open (to bypass Gatekeeper)
-
-            ---
-
-            **SHA-256:** `${{ steps.package.outputs.sha256 }}`
-
-      # Automatically update the Homebrew tap formula
-      - name: Update Homebrew Tap
-        env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          VERSION: ${{ steps.package.outputs.version }}
-          SHA256: ${{ steps.package.outputs.sha256 }}
-          FILENAME: ${{ steps.package.outputs.filename }}
-        run: |
-          # Clone the tap repo (must exist: github.com/<owner>/homebrew-displaybrightness)
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO_OWNER}/homebrew-displaybrightness.git" tap
-          cd tap
-
-          # Regenerate the formula
-          cat > Casks/displaybrightness.rb << FORMULA
-          cask "displaybrightness" do
-            version "${VERSION}"
-            sha256 "${SHA256}"
-
-            url "https://github.com/${REPO_OWNER}/DisplaySettings/releases/download/v#{version}/DisplaySettings-#{version}.zip"
-            name "DisplaySettings"
-            desc "Menu bar app to control external display brightness via DDC/CI"
-            homepage "https://github.com/${REPO_OWNER}/DisplaySettings"
-
-            app "DisplaySettings.app"
-
-            postflight do
-              system_command "/usr/bin/xattr",
-                args: ["-dr", "com.apple.quarantine", "#{appdir}/DisplaySettings.app"],
-                sudo: false
-            end
-
-            zap trash: "~/Library/Preferences/com.displaySettings.DisplaySettings.plist"
-          end
-          FORMULA
-
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/displaybrightness.rb
-          git commit -m "chore: bump displaybrightness to v${VERSION}"
-          git push
+          files: |
+            Nit.dmg
+            Nit.exe
+          generate_release_notes: true

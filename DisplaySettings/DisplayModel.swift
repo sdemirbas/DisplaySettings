@@ -19,6 +19,8 @@ struct DisplayModel: Identifiable, Equatable {
     var ddcSupported: Bool
     var usesSoftwareBrightness: Bool  // true when DDC unavailable; brightness controlled via CoreDisplay/gamma
     var isLoading: Bool
+    var isBuiltin: Bool        // true for MacBook/iMac built-in display
+    var uniqueID: String       // stable ID: "BUILTIN_<serial>", "V<vendor>_P<product>_S<serial>", or fallback
 
     init(
         id: CGDirectDisplayID,
@@ -37,7 +39,9 @@ struct DisplayModel: Identifiable, Equatable {
         resolution: String = "",
         ddcSupported: Bool = true,
         usesSoftwareBrightness: Bool = false,
-        isLoading: Bool = false
+        isLoading: Bool = false,
+        isBuiltin: Bool = false,
+        uniqueID: String = ""
     ) {
         self.id = id
         self.name = name
@@ -56,5 +60,7 @@ struct DisplayModel: Identifiable, Equatable {
         self.ddcSupported = ddcSupported
         self.usesSoftwareBrightness = usesSoftwareBrightness
         self.isLoading = isLoading
+        self.isBuiltin = isBuiltin
+        self.uniqueID = uniqueID
     }
 }
